@@ -5,36 +5,40 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { doc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-// Show popup function
-function showPopup(message, onOk) {
-  const overlay = document.createElement("div");
-  overlay.className = "popup-overlay";
-  overlay.id = "loginPopup";
-  
-  const popup = document.createElement("div");
-  popup.className = "popup-box";
-  popup.innerHTML = `
-    <p>${message}</p>
-    <button class="popup-btn" type="button" id="popupOkBtn">OK</button>
-  `;
-  
-  overlay.appendChild(popup);
-  document.body.appendChild(overlay);
-  
-  // Handle OK button click
-  const okBtn = document.getElementById("popupOkBtn");
-  okBtn.onclick = () => {
-    overlay.remove();
-    if (onOk) onOk();
-  };
-  
-  // Also allow clicking overlay to proceed
-  overlay.onclick = (e) => {
-    if (e.target === overlay) {
-      overlay.remove();
-      if (onOk) onOk();
+// Admin emails - these emails can access admin panel
+const ADMIN_EMAILS = ["prashantyashika@gmail.com"];
+
+// Check if email is admin
+function isAdminEmail(email) {
+  if (!email) return false;
+  return ADMIN_EMAILS.includes(email.toLowerCase().trim());
+}
+
+// Show message on screen
+function showMessage(message, isSuccess) {
+  const msgEl = document.getElementById("msg");
+  if (msgEl) {
+    msgEl.style.color = isSuccess ? "#22c55e" : "#f87171";
+    msgEl.innerText = message;
+  }
+}
+
+// Redirect function with fallback
+function redirectTo(page) {
+  // Try multiple redirect methods for cross-browser compatibility
+  try {
+    window.location.href = page;
+  } catch (e) {
+    try {
+      window.location.assign(page);
+    } catch (e2) {
+      try {
+        window.location.replace(page);
+      } catch (e3) {
+        document.location.href = page;
+      }
     }
-  };
+  }
 }
 
 // Signup function
@@ -51,7 +55,7 @@ window.signup = async function (e) {
 
   // Check if we're on signup page
   if (!firstNameEl || !confirmPasswordEl) {
-    msgEl.innerText = "Please use the signup page";
+    showMessage("Please use the signup page", false);
     return;
   }
 
@@ -67,28 +71,28 @@ window.signup = async function (e) {
 
   // Validation
   if (!firstName || !lastName) {
-    msgEl.innerText = "Please enter your first and last name";
+    showMessage("Please enter your first and last name", false);
     return;
   }
   if (!phone) {
-    msgEl.innerText = "Please enter your phone number";
+    showMessage("Please enter your phone number", false);
     return;
   }
   if (!emailInput) {
-    msgEl.innerText = "Please enter your email";
+    showMessage("Please enter your email", false);
     return;
   }
   if (passwordInput.length < 6) {
-    msgEl.innerText = "Password must be at least 6 characters";
+    showMessage("Password must be at least 6 characters", false);
     return;
   }
   if (passwordInput !== confirmPassword) {
-    msgEl.innerText = "Passwords do not match";
+    showMessage("Passwords do not match", false);
     return;
   }
 
   try {
-    msgEl.innerText = "Creating account...";
+    showMessage("Creating account...", true);
     const userCredential = await createUserWithEmailAndPassword(auth, emailInput, passwordInput);
     
     // Save user data to Firestore
@@ -100,23 +104,16 @@ window.signup = async function (e) {
       createdAt: new Date().toISOString()
     });
     
-    msgEl.innerText = "";
-    showPopup("✅ Successfully Signed Up!", () => {
-      window.location.href = "login.html";
-    });
+    showMessage("✅ Account created! Redirecting to login...", true);
+    
+    setTimeout(() => {
+      redirectTo("login.html");
+    }, 1500);
+    
   } catch (err) {
-    msgEl.innerText = err.message;
+    showMessage(err.message, false);
   }
 };
-
-// Admin emails - these emails can access admin panel
-const ADMIN_EMAILS = ["prashantyashika@gmail.com"];
-
-// Check if email is admin
-function isAdminEmail(email) {
-  if (!email) return false;
-  return ADMIN_EMAILS.includes(email.toLowerCase().trim());
-}
 
 // Login function
 window.login = async function (e) {
@@ -124,52 +121,34 @@ window.login = async function (e) {
   
   const emailEl = document.getElementById("email");
   const passwordEl = document.getElementById("password");
-  const msgEl = document.getElementById("msg");
 
   const emailInput = emailEl.value.trim();
   const passwordInput = passwordEl.value;
 
-  // Clear previous message
-  msgEl.innerText = "";
-
   if (!emailInput || !passwordInput) {
-    msgEl.innerText = "Please enter email and password";
+    showMessage("Please enter email and password", false);
     return;
   }
 
   try {
-    msgEl.innerText = "Signing in...";
+    showMessage("Signing in...", true);
     const userCredential = await signInWithEmailAndPassword(auth, emailInput, passwordInput);
     
-    msgEl.innerText = "";
-    
-    // Check if admin or regular user using Firebase user email
+    // Check if admin or regular user
     const userEmail = userCredential.user.email;
     const isAdmin = isAdminEmail(userEmail);
     
-    console.log("User email:", userEmail, "Is Admin:", isAdmin);
-    
     const redirectPage = isAdmin ? "admin.html" : "map.html";
-    const successMessage = isAdmin ? "✅ Welcome Admin!" : "✅ Successfully Logged In!";
+    const successMessage = isAdmin ? "✅ Welcome Admin! Redirecting..." : "✅ Login successful! Redirecting...";
     
-    // Store redirect page for backup
-    sessionStorage.setItem("redirectAfterLogin", redirectPage);
+    showMessage(successMessage, true);
     
-    showPopup(successMessage, () => {
-      console.log("Redirecting to:", redirectPage);
-      window.location.href = redirectPage;
-    });
-    
-    // Backup redirect after 3 seconds if popup doesn't work
+    // Redirect after short delay
     setTimeout(() => {
-      const savedRedirect = sessionStorage.getItem("redirectAfterLogin");
-      if (savedRedirect) {
-        sessionStorage.removeItem("redirectAfterLogin");
-        window.location.href = savedRedirect;
-      }
-    }, 3000);
+      redirectTo(redirectPage);
+    }, 1000);
     
   } catch (err) {
-    msgEl.innerText = err.message;
+    showMessage(err.message, false);
   }
 };
