@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>My Location | GeoGuard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#6366f1">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
+  <link rel="stylesheet" href="../css/map.css">
+</head>
+<body>
+
+<header class="header">
+  <div class="header-left">
+    <div class="logo">🛡️</div>
+    <h1>GeoGuard</h1>
+    <span id="trackingStatus" class="tracking-status">● Connecting</span>
+  </div>
+  <div class="header-right">
+    <button class="btn btn-primary" onclick="recenterMap()">📍 My Location</button>
+    <div class="user-info">
+      <div class="user-avatar">👤</div>
+      <span id="userEmail">Loading...</span>
+    </div>
+    <button class="btn btn-danger" onclick="logout()">Logout</button>
+  </div>
+</header>
+
+<div class="main-content">
+  <div id="map">
+    <div class="loading">
+      <div class="spinner"></div>
+      <span>Getting your location...</span>
+    </div>
+  </div>
+  <div class="location-card" id="locationCard" style="display: none;">
+    <h4>📍 Your Current Location</h4>
+    <div class="coords" id="coords">--</div>
+    <div class="status-text" id="statusText"></div>
+  </div>
+</div>
+
+<button class="recenter-btn" onclick="recenterMap()" title="Go to my location">
+  <span>📍</span>
+</button>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script type="module" src="../js/map.js"></script>
+</body>
+</html>

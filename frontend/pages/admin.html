@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Admin Dashboard | GeoGuard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#6366f1">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
+  <link rel="stylesheet" href="../css/map.css">
+</head>
+<body class="has-sidebar">
+
+<header class="header">
+  <div class="header-left">
+    <div class="logo">🛡️</div>
+    <h1>GeoGuard Admin</h1>
+  </div>
+  <div class="header-right">
+    <button class="btn btn-primary" onclick="refreshData()">🔄 Refresh</button>
+    <button class="btn btn-danger" onclick="logout()">Logout</button>
+  </div>
+</header>
+
+<div class="main-content">
+  <div class="stats-bar">
+    <div class="stat-item">
+      <div class="stat-icon users">👥</div>
+      <div class="stat-info">
+        <span class="label">Total Users</span>
+        <span class="value" id="totalUsers">0</span>
+      </div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-icon active">📍</div>
+      <div class="stat-info">
+        <span class="label">Online Now</span>
+        <span class="value" id="activeLocations">0</span>
+      </div>
+    </div>
+  </div>
+  <div id="map"></div>
+</div>
+
+<aside class="sidebar">
+  <div class="sidebar-handle"></div>
+  <h3>
+    👥 Users 
+    <span class="user-count" id="userCount">0</span>
+  </h3>
+  <div class="user-list" id="userList">
+    <div class="loading">
+      <div class="spinner"></div>
+    </div>
+  </div>
+</aside>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script type="module" src="../js/admin.js"></script>
+</body>
+</html>

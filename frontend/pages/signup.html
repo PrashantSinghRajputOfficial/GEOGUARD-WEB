@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Signup | GeoGuard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#6366f1">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="stylesheet" href="../css/auth.css">
+</head>
+<body>
+
+<div class="login-box signup-box">
+  <div class="brand-icon">🛡️</div>
+  <h2>Create Account</h2>
+  <p class="subtitle">Join GeoGuard and stay protected</p>
+  <div class="input-row">
+    <input id="firstName" placeholder="First Name">
+    <input id="lastName" placeholder="Last Name">
+  </div>
+  <input id="phone" type="tel" placeholder="Phone Number">
+  <input id="email" type="email" placeholder="Email address">
+  <input id="password" type="password" placeholder="Password">
+  <input id="confirmPassword" type="password" placeholder="Confirm Password">
+  <button type="button" onclick="signup()">Create Account</button>
+  <p id="msg"></p>
+  <p class="link-text">Already have an account? <a href="login.html">Sign In</a></p>
+</div>
+
+<script type="module" src="../js/auth.js"></script>
+</body>
+</html>
