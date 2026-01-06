@@ -9,20 +9,31 @@ import { doc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-
 function showPopup(message, onOk) {
   const overlay = document.createElement("div");
   overlay.className = "popup-overlay";
+  overlay.id = "loginPopup";
   
   const popup = document.createElement("div");
   popup.className = "popup-box";
   popup.innerHTML = `
     <p>${message}</p>
-    <button class="popup-btn" type="button">OK</button>
+    <button class="popup-btn" type="button" id="popupOkBtn">OK</button>
   `;
   
   overlay.appendChild(popup);
   document.body.appendChild(overlay);
   
-  popup.querySelector(".popup-btn").onclick = () => {
+  // Handle OK button click
+  const okBtn = document.getElementById("popupOkBtn");
+  okBtn.onclick = () => {
     overlay.remove();
     if (onOk) onOk();
+  };
+  
+  // Also allow clicking overlay to proceed
+  overlay.onclick = (e) => {
+    if (e.target === overlay) {
+      overlay.remove();
+      if (onOk) onOk();
+    }
   };
 }
 
@@ -98,8 +109,14 @@ window.signup = async function (e) {
   }
 };
 
-// Admin email - only this email can access admin panel
-const ADMIN_EMAIL = "prashantyashika@gmail.com";
+// Admin emails - these emails can access admin panel
+const ADMIN_EMAILS = ["prashantyashika@gmail.com"];
+
+// Check if email is admin
+function isAdminEmail(email) {
+  if (!email) return false;
+  return ADMIN_EMAILS.includes(email.toLowerCase().trim());
+}
 
 // Login function
 window.login = async function (e) {
@@ -109,7 +126,7 @@ window.login = async function (e) {
   const passwordEl = document.getElementById("password");
   const msgEl = document.getElementById("msg");
 
-  const emailInput = emailEl.value.trim().toLowerCase();
+  const emailInput = emailEl.value.trim();
   const passwordInput = passwordEl.value;
 
   // Clear previous message
@@ -122,18 +139,36 @@ window.login = async function (e) {
 
   try {
     msgEl.innerText = "Signing in...";
-    await signInWithEmailAndPassword(auth, emailInput, passwordInput);
+    const userCredential = await signInWithEmailAndPassword(auth, emailInput, passwordInput);
     
     msgEl.innerText = "";
     
-    // Check if admin or regular user
-    const isAdmin = emailInput === ADMIN_EMAIL;
+    // Check if admin or regular user using Firebase user email
+    const userEmail = userCredential.user.email;
+    const isAdmin = isAdminEmail(userEmail);
+    
+    console.log("User email:", userEmail, "Is Admin:", isAdmin);
+    
     const redirectPage = isAdmin ? "admin.html" : "map.html";
     const successMessage = isAdmin ? "✅ Welcome Admin!" : "✅ Successfully Logged In!";
     
+    // Store redirect page for backup
+    sessionStorage.setItem("redirectAfterLogin", redirectPage);
+    
     showPopup(successMessage, () => {
+      console.log("Redirecting to:", redirectPage);
       window.location.href = redirectPage;
     });
+    
+    // Backup redirect after 3 seconds if popup doesn't work
+    setTimeout(() => {
+      const savedRedirect = sessionStorage.getItem("redirectAfterLogin");
+      if (savedRedirect) {
+        sessionStorage.removeItem("redirectAfterLogin");
+        window.location.href = savedRedirect;
+      }
+    }, 3000);
+    
   } catch (err) {
     msgEl.innerText = err.message;
   }

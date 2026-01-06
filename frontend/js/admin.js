@@ -2,8 +2,14 @@ import { db, auth } from "./firebase.js";
 import { collection, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-// Admin email - only this email can access admin panel
-const ADMIN_EMAIL = "prashantyashika@gmail.com";
+// Admin emails - these emails can access admin panel
+const ADMIN_EMAILS = ["prashantyashika@gmail.com"];
+
+// Check if email is admin
+function isAdminEmail(email) {
+  if (!email) return false;
+  return ADMIN_EMAILS.includes(email.toLowerCase().trim());
+}
 
 let map;
 let markers = [];
@@ -17,13 +23,16 @@ onAuthStateChanged(auth, (user) => {
     return;
   }
   
+  console.log("Admin page - User email:", user.email); // Debug log
+  
   // Check if user is admin
-  if (user.email.toLowerCase() !== ADMIN_EMAIL) {
-    alert("Access Denied! You are not authorized to view this page.");
+  if (!isAdminEmail(user.email)) {
+    alert("⛔ Access Denied! You are not authorized to view this page.");
     window.location.href = "map.html";
     return;
   }
   
+  console.log("Admin access granted!"); // Debug log
   initMap();
   loadUsers();
   getAdminLocation();
