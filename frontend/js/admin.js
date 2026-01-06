@@ -2,17 +2,28 @@ import { db, auth } from "./firebase.js";
 import { collection, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
+// Admin email - only this email can access admin panel
+const ADMIN_EMAIL = "prashantyashika@gmail.com";
+
 let map;
 let markers = [];
 let adminLat = null;
 let adminLon = null;
 
-// Check auth state
+// Check auth state and admin access
 onAuthStateChanged(auth, (user) => {
   if (!user) {
     window.location.href = "login.html";
     return;
   }
+  
+  // Check if user is admin
+  if (user.email.toLowerCase() !== ADMIN_EMAIL) {
+    alert("Access Denied! You are not authorized to view this page.");
+    window.location.href = "map.html";
+    return;
+  }
+  
   initMap();
   loadUsers();
   getAdminLocation();

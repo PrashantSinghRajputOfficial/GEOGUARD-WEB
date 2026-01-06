@@ -98,6 +98,9 @@ window.signup = async function (e) {
   }
 };
 
+// Admin email - only this email can access admin panel
+const ADMIN_EMAIL = "prashantyashika@gmail.com";
+
 // Login function
 window.login = async function (e) {
   if (e) e.preventDefault();
@@ -106,7 +109,7 @@ window.login = async function (e) {
   const passwordEl = document.getElementById("password");
   const msgEl = document.getElementById("msg");
 
-  const emailInput = emailEl.value.trim();
+  const emailInput = emailEl.value.trim().toLowerCase();
   const passwordInput = passwordEl.value;
 
   // Clear previous message
@@ -122,8 +125,14 @@ window.login = async function (e) {
     await signInWithEmailAndPassword(auth, emailInput, passwordInput);
     
     msgEl.innerText = "";
-    showPopup("✅ Successfully Logged In!", () => {
-      window.location.href = "map.html";
+    
+    // Check if admin or regular user
+    const isAdmin = emailInput === ADMIN_EMAIL;
+    const redirectPage = isAdmin ? "admin.html" : "map.html";
+    const successMessage = isAdmin ? "✅ Welcome Admin!" : "✅ Successfully Logged In!";
+    
+    showPopup(successMessage, () => {
+      window.location.href = redirectPage;
     });
   } catch (err) {
     msgEl.innerText = err.message;
