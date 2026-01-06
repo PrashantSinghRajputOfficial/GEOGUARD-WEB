@@ -1,37 +1,31 @@
-// Get current location with better error handling
+// Get current location
 export function getLocation(callback, errorCallback) {
   if (!navigator.geolocation) {
     if (errorCallback) errorCallback("Geolocation is not supported by your browser");
     return;
   }
 
-  const options = {
+  var options = {
     enableHighAccuracy: true,
-    timeout: 10000,
+    timeout: 15000,
     maximumAge: 0
   };
 
   navigator.geolocation.getCurrentPosition(
-    (pos) => {
+    function(pos) {
       callback(pos.coords.latitude, pos.coords.longitude);
     },
-    (err) => {
-      let message = "Unable to get location";
-      switch(err.code) {
-        case err.PERMISSION_DENIED:
-          message = "Location permission denied. Please enable it in browser settings.";
-          break;
-        case err.POSITION_UNAVAILABLE:
-          message = "Location information unavailable.";
-          break;
-        case err.TIMEOUT:
-          message = "Location request timed out.";
-          break;
+    function(err) {
+      var message = "Unable to get location";
+      if (err.code === 1) {
+        message = "Location permission denied. Please enable it in browser settings.";
+      } else if (err.code === 2) {
+        message = "Location information unavailable.";
+      } else if (err.code === 3) {
+        message = "Location request timed out.";
       }
       if (errorCallback) {
         errorCallback(message);
-      } else {
-        console.error(message);
       }
     },
     options
@@ -45,15 +39,17 @@ export function watchLocation(callback, errorCallback) {
     return null;
   }
 
-  const options = {
+  var options = {
     enableHighAccuracy: true,
-    timeout: 10000,
+    timeout: 15000,
     maximumAge: 5000
   };
 
   return navigator.geolocation.watchPosition(
-    (pos) => callback(pos.coords.latitude, pos.coords.longitude),
-    (err) => {
+    function(pos) {
+      callback(pos.coords.latitude, pos.coords.longitude);
+    },
+    function(err) {
       if (errorCallback) errorCallback(err.message);
     },
     options

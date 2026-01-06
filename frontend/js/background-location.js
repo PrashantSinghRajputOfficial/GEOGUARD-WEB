@@ -2,174 +2,166 @@
 import { db, auth } from "./firebase.js";
 import { doc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-let watchId = null;
-let isTracking = false;
+var watchId = null;
+var isTracking = false;
 
-// Initialize background location tracking
-export async function initBackgroundLocation() {
-  // Register Service Worker
+// Register Service Worker
+export function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
-    try {
-      const registration = await navigator.serviceWorker.register('/sw.js');
-      console.log('Service Worker registered:', registration);
+    navigator.serviceWorker.register('/sw.js').then(function(registration) {
+      console.log('Service Worker registered');
       
-      // Request persistent storage
-      if (navigator.storage && navigator.storage.persist) {
-        const isPersisted = await navigator.storage.persist();
-        console.log('Persistent storage:', isPersisted);
+      // Request notification permission for background updates
+      if ('Notification' in window) {
+        Notification.requestPermission();
       }
       
-      // Register for periodic background sync (if supported)
-      if ('periodicSync' in registration) {
-        try {
-          await registration.periodicSync.register('location-update', {
-            minInterval: 15 * 60 * 1000 // 15 minutes minimum
-          });
-          console.log('Periodic sync registered');
-        } catch (err) {
-          console.log('Periodic sync not available:', err);
-        }
+      // Register background sync
+      if ('sync' in registration) {
+        registration.sync.register('sync-location').catch(function(err) {
+          console.log('Background sync not supported');
+        });
       }
       
-      // Listen for messages from service worker
-      navigator.serviceWorker.addEventListener('message', (event) => {
-        if (event.data.type === 'SYNC_LOCATION') {
-          updateLocationNow();
-        }
-      });
-      
-    } catch (err) {
-      console.error('Service Worker registration failed:', err);
-    }
+    }).catch(function(err) {
+      console.log('Service Worker registration failed:', err);
+    });
+    
+    // Listen for messages from service worker
+    navigator.serviceWorker.addEventListener('message', function(event) {
+      if (event.data.type === 'SYNC_LOCATION') {
+        updateLocationOnce();
+      }
+    });
   }
 }
 
-// Start continuous location tracking
-export function startLocationTracking(onUpdate, onError) {
+// Start watching location continuously
+export function startBackgroundTracking(onUpdate, onError) {
   if (!navigator.geolocation) {
     if (onError) onError('Geolocation not supported');
     return;
   }
   
-  // Stop any existing tracking
-  stopLocationTracking();
+  // Stop existing tracking
+  stopBackgroundTracking();
   
-  const options = {
+  var options = {
     enableHighAccuracy: true,
     timeout: 30000,
     maximumAge: 0
   };
   
-  // Watch position continuously
+  // Watch position
   watchId = navigator.geolocation.watchPosition(
-    async (position) => {
-      const lat = position.coords.latitude;
-      const lon = position.coords.longitude;
-      const accuracy = position.coords.accuracy;
+    function(position) {
+      var lat = position.coords.latitude;
+      var lon = position.coords.longitude;
+      var accuracy = position.coords.accuracy;
       
       isTracking = true;
       
-      // Callback to update UI
       if (onUpdate) onUpdate(lat, lon, accuracy);
       
       // Save to Firebase
-      await saveLocation(lat, lon, accuracy);
+      saveLocationToFirebase(lat, lon, accuracy);
       
-      // Send to service worker for background sync
-      if (navigator.serviceWorker.controller) {
-        navigator.serviceWorker.controller.postMessage({
-          type: 'LOCATION_UPDATE',
-          location: { lat, lon, accuracy, timestamp: Date.now() }
-        });
-      }
+      // Store locally for offline
+      saveLocationLocally(lat, lon, accuracy);
     },
-    (error) => {
-      console.error('Location error:', error);
-      if (onError) onError(error.message);
+    function(error) {
+      var message = 'Location error';
+      if (error.code === 1) message = 'Location permission denied';
+      if (error.code === 2) message = 'Location unavailable';
+      if (error.code === 3) message = 'Location timeout';
+      
+      if (onError) onError(message);
     },
     options
   );
   
-  console.log('Location tracking started, watchId:', watchId);
   return watchId;
 }
 
-// Stop location tracking
-export function stopLocationTracking() {
+// Stop tracking
+export function stopBackgroundTracking() {
   if (watchId !== null) {
     navigator.geolocation.clearWatch(watchId);
     watchId = null;
     isTracking = false;
-    console.log('Location tracking stopped');
   }
 }
 
 // Save location to Firebase
-async function saveLocation(lat, lon, accuracy) {
-  const user = auth.currentUser;
+function saveLocationToFirebase(lat, lon, accuracy) {
+  var user = auth.currentUser;
   if (!user) return;
   
-  try {
-    await setDoc(doc(db, "locations", user.uid), {
-      email: user.email,
-      name: user.displayName || user.email.split('@')[0],
-      latitude: lat,
-      longitude: lon,
-      accuracy: accuracy,
-      timestamp: new Date(),
-      isOnline: true
-    }, { merge: true });
-  } catch (err) {
-    console.error('Error saving location:', err);
-    // Store locally for later sync
-    storeOfflineLocation(lat, lon, accuracy);
-  }
+  var userName = localStorage.getItem('userName') || user.email.split('@')[0];
+  
+  setDoc(doc(db, "locations", user.uid), {
+    email: user.email,
+    name: userName,
+    latitude: lat,
+    longitude: lon,
+    accuracy: accuracy || 0,
+    timestamp: new Date(),
+    isOnline: true
+  }).catch(function(err) {
+    console.log('Error saving to Firebase, storing locally');
+    saveLocationLocally(lat, lon, accuracy);
+  });
 }
 
-// Store location offline when no internet
-function storeOfflineLocation(lat, lon, accuracy) {
-  const pendingLocations = JSON.parse(localStorage.getItem('pendingLocations') || '[]');
-  pendingLocations.push({
-    lat, lon, accuracy,
+// Save location locally for offline sync
+function saveLocationLocally(lat, lon, accuracy) {
+  var location = {
+    lat: lat,
+    lon: lon,
+    accuracy: accuracy,
     timestamp: Date.now()
-  });
-  localStorage.setItem('pendingLocations', JSON.stringify(pendingLocations));
+  };
+  localStorage.setItem('lastLocation', JSON.stringify(location));
+  
+  // Add to pending queue
+  var pending = JSON.parse(localStorage.getItem('pendingLocations') || '[]');
+  pending.push(location);
+  // Keep only last 10
+  if (pending.length > 10) pending = pending.slice(-10);
+  localStorage.setItem('pendingLocations', JSON.stringify(pending));
 }
 
 // Sync offline locations when back online
-export async function syncOfflineLocations() {
-  const pendingLocations = JSON.parse(localStorage.getItem('pendingLocations') || '[]');
+export function syncOfflineLocations() {
+  var pending = JSON.parse(localStorage.getItem('pendingLocations') || '[]');
+  if (pending.length === 0) return;
   
-  if (pendingLocations.length === 0) return;
-  
-  const user = auth.currentUser;
+  var user = auth.currentUser;
   if (!user) return;
   
-  // Upload the latest location
-  const latest = pendingLocations[pendingLocations.length - 1];
-  await saveLocation(latest.lat, latest.lon, latest.accuracy);
+  // Upload latest location
+  var latest = pending[pending.length - 1];
+  saveLocationToFirebase(latest.lat, latest.lon, latest.accuracy);
   
   // Clear pending
   localStorage.removeItem('pendingLocations');
-  console.log('Offline locations synced');
 }
 
-// Update location immediately
-async function updateLocationNow() {
-  return new Promise((resolve, reject) => {
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        await saveLocation(
-          position.coords.latitude,
-          position.coords.longitude,
-          position.coords.accuracy
-        );
-        resolve();
-      },
-      reject,
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
-  });
+// Update location once (for background sync)
+function updateLocationOnce() {
+  if (!navigator.geolocation) return;
+  
+  navigator.geolocation.getCurrentPosition(
+    function(position) {
+      saveLocationToFirebase(
+        position.coords.latitude,
+        position.coords.longitude,
+        position.coords.accuracy
+      );
+    },
+    function() {},
+    { enableHighAccuracy: true, timeout: 10000 }
+  );
 }
 
 // Check if tracking is active
@@ -177,16 +169,24 @@ export function isTrackingActive() {
   return isTracking;
 }
 
-// Request background location permission (for Android)
-export async function requestBackgroundPermission() {
-  if ('permissions' in navigator) {
-    try {
-      const result = await navigator.permissions.query({ name: 'geolocation' });
-      console.log('Geolocation permission:', result.state);
-      return result.state === 'granted';
-    } catch (err) {
-      console.log('Permission query not supported');
+// Request all permissions
+export function requestAllPermissions() {
+  return new Promise(function(resolve) {
+    var permissions = [];
+    
+    // Location permission
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        function() { permissions.push('location'); resolve(permissions); },
+        function() { resolve(permissions); }
+      );
     }
-  }
-  return false;
+    
+    // Notification permission
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().then(function(result) {
+        if (result === 'granted') permissions.push('notification');
+      });
+    }
+  });
 }

@@ -2,9 +2,11 @@
 <html>
 <head>
   <title>My Location | GeoGuard</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#6366f1">
-  <link rel="manifest" href="/manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="../../manifest.json">
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
   <link rel="stylesheet" href="../css/map.css">
 </head>
@@ -33,6 +35,7 @@
       <span>Getting your location...</span>
     </div>
   </div>
+  
   <div class="location-card" id="locationCard" style="display: none;">
     <h4>📍 Your Current Location</h4>
     <div class="coords" id="coords">--</div>
@@ -40,9 +43,7 @@
   </div>
 </div>
 
-<button class="recenter-btn" onclick="recenterMap()" title="Go to my location">
-  <span>📍</span>
-</button>
+<button class="recenter-btn" onclick="recenterMap()" title="My Location">📍</button>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script type="module" src="../js/map.js"></script>

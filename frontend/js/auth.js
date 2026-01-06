@@ -5,150 +5,106 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { doc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-// Admin emails - these emails can access admin panel
-const ADMIN_EMAILS = ["prashantyashika@gmail.com"];
-
-// Check if email is admin
-function isAdminEmail(email) {
-  if (!email) return false;
-  return ADMIN_EMAILS.includes(email.toLowerCase().trim());
-}
-
-// Show message on screen
-function showMessage(message, isSuccess) {
-  const msgEl = document.getElementById("msg");
-  if (msgEl) {
-    msgEl.style.color = isSuccess ? "#22c55e" : "#f87171";
-    msgEl.innerText = message;
-  }
-}
-
-// Redirect function with fallback
-function redirectTo(page) {
-  // Try multiple redirect methods for cross-browser compatibility
-  try {
-    window.location.href = page;
-  } catch (e) {
-    try {
-      window.location.assign(page);
-    } catch (e2) {
-      try {
-        window.location.replace(page);
-      } catch (e3) {
-        document.location.href = page;
-      }
-    }
-  }
-}
+// Admin email
+const ADMIN_EMAIL = "prashantyashika@gmail.com";
 
 // Signup function
-window.signup = async function (e) {
-  if (e) e.preventDefault();
-  
-  const firstNameEl = document.getElementById("firstName");
-  const lastNameEl = document.getElementById("lastName");
-  const phoneEl = document.getElementById("phone");
-  const emailEl = document.getElementById("email");
-  const passwordEl = document.getElementById("password");
-  const confirmPasswordEl = document.getElementById("confirmPassword");
-  const msgEl = document.getElementById("msg");
-
-  // Check if we're on signup page
-  if (!firstNameEl || !confirmPasswordEl) {
-    showMessage("Please use the signup page", false);
-    return;
-  }
-
-  const firstName = firstNameEl.value.trim();
-  const lastName = lastNameEl.value.trim();
-  const phone = phoneEl.value.trim();
-  const emailInput = emailEl.value.trim();
-  const passwordInput = passwordEl.value;
-  const confirmPassword = confirmPasswordEl.value;
-
-  // Clear previous message
-  msgEl.innerText = "";
+window.signup = async function() {
+  var firstName = document.getElementById("firstName").value.trim();
+  var lastName = document.getElementById("lastName").value.trim();
+  var phone = document.getElementById("phone").value.trim();
+  var email = document.getElementById("email").value.trim();
+  var password = document.getElementById("password").value;
+  var confirmPassword = document.getElementById("confirmPassword").value;
+  var msg = document.getElementById("msg");
 
   // Validation
   if (!firstName || !lastName) {
-    showMessage("Please enter your first and last name", false);
+    msg.style.color = "#f87171";
+    msg.innerText = "Please enter your first and last name";
     return;
   }
   if (!phone) {
-    showMessage("Please enter your phone number", false);
+    msg.style.color = "#f87171";
+    msg.innerText = "Please enter your phone number";
     return;
   }
-  if (!emailInput) {
-    showMessage("Please enter your email", false);
+  if (!email) {
+    msg.style.color = "#f87171";
+    msg.innerText = "Please enter your email";
     return;
   }
-  if (passwordInput.length < 6) {
-    showMessage("Password must be at least 6 characters", false);
+  if (password.length < 6) {
+    msg.style.color = "#f87171";
+    msg.innerText = "Password must be at least 6 characters";
     return;
   }
-  if (passwordInput !== confirmPassword) {
-    showMessage("Passwords do not match", false);
+  if (password !== confirmPassword) {
+    msg.style.color = "#f87171";
+    msg.innerText = "Passwords do not match";
     return;
   }
 
   try {
-    showMessage("Creating account...", true);
-    const userCredential = await createUserWithEmailAndPassword(auth, emailInput, passwordInput);
+    msg.style.color = "#22c55e";
+    msg.innerText = "Creating account...";
     
-    // Save user data to Firestore
+    var userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    
     await setDoc(doc(db, "users", userCredential.user.uid), {
       firstName: firstName,
       lastName: lastName,
       phone: phone,
-      email: emailInput,
+      email: email,
       createdAt: new Date().toISOString()
     });
     
-    showMessage("✅ Account created! Redirecting to login...", true);
+    msg.innerText = "✅ Account created! Redirecting...";
     
-    setTimeout(() => {
-      redirectTo("login.html");
+    setTimeout(function() {
+      window.location.href = "login.html";
     }, 1500);
     
   } catch (err) {
-    showMessage(err.message, false);
+    msg.style.color = "#f87171";
+    msg.innerText = err.message;
   }
 };
 
 // Login function
-window.login = async function (e) {
-  if (e) e.preventDefault();
-  
-  const emailEl = document.getElementById("email");
-  const passwordEl = document.getElementById("password");
+window.login = async function() {
+  var email = document.getElementById("email").value.trim();
+  var password = document.getElementById("password").value;
+  var msg = document.getElementById("msg");
 
-  const emailInput = emailEl.value.trim();
-  const passwordInput = passwordEl.value;
-
-  if (!emailInput || !passwordInput) {
-    showMessage("Please enter email and password", false);
+  if (!email || !password) {
+    msg.style.color = "#f87171";
+    msg.innerText = "Please enter email and password";
     return;
   }
 
   try {
-    showMessage("Signing in...", true);
-    const userCredential = await signInWithEmailAndPassword(auth, emailInput, passwordInput);
+    msg.style.color = "#22c55e";
+    msg.innerText = "Signing in...";
     
-    // Check if admin or regular user
-    const userEmail = userCredential.user.email;
-    const isAdmin = isAdminEmail(userEmail);
+    var userCredential = await signInWithEmailAndPassword(auth, email, password);
+    var userEmail = userCredential.user.email.toLowerCase().trim();
     
-    const redirectPage = isAdmin ? "admin.html" : "map.html";
-    const successMessage = isAdmin ? "✅ Welcome Admin! Redirecting..." : "✅ Login successful! Redirecting...";
-    
-    showMessage(successMessage, true);
-    
-    // Redirect after short delay
-    setTimeout(() => {
-      redirectTo(redirectPage);
-    }, 1000);
+    // Check if admin
+    if (userEmail === ADMIN_EMAIL) {
+      msg.innerText = "✅ Welcome Admin! Redirecting...";
+      setTimeout(function() {
+        window.location.href = "admin.html";
+      }, 1000);
+    } else {
+      msg.innerText = "✅ Login successful! Redirecting...";
+      setTimeout(function() {
+        window.location.href = "map.html";
+      }, 1000);
+    }
     
   } catch (err) {
-    showMessage(err.message, false);
+    msg.style.color = "#f87171";
+    msg.innerText = err.message;
   }
 };

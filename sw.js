@@ -1,33 +1,35 @@
-// Service Worker for GeoGuard - Background Location Tracking
-
-const CACHE_NAME = 'geoguard-v1';
-const urlsToCache = [
-  '/frontend/pages/login.html',
-  '/frontend/pages/signup.html',
-  '/frontend/pages/map.html',
-  '/frontend/css/auth.css',
-  '/frontend/css/map.css',
-  '/frontend/js/auth.js',
-  '/frontend/js/map.js',
-  '/frontend/js/firebase.js',
-  '/frontend/js/gps.js'
+// GeoGuard Service Worker
+var CACHE_NAME = 'geoguard-v1';
+var urlsToCache = [
+  './frontend/pages/login.html',
+  './frontend/pages/signup.html',
+  './frontend/pages/map.html',
+  './frontend/pages/admin.html',
+  './frontend/css/auth.css',
+  './frontend/css/map.css',
+  './frontend/js/auth.js',
+  './frontend/js/map.js',
+  './frontend/js/admin.js',
+  './frontend/js/firebase.js',
+  './frontend/js/gps.js'
 ];
 
-// Install event
-self.addEventListener('install', (event) => {
+// Install
+self.addEventListener('install', function(event) {
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(urlsToCache))
+    caches.open(CACHE_NAME).then(function(cache) {
+      return cache.addAll(urlsToCache);
+    })
   );
   self.skipWaiting();
 });
 
-// Activate event
-self.addEventListener('activate', (event) => {
+// Activate
+self.addEventListener('activate', function(event) {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
+    caches.keys().then(function(cacheNames) {
       return Promise.all(
-        cacheNames.map((cacheName) => {
+        cacheNames.map(function(cacheName) {
           if (cacheName !== CACHE_NAME) {
             return caches.delete(cacheName);
           }
@@ -38,59 +40,39 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch event - serve from cache
-self.addEventListener('fetch', (event) => {
+// Fetch - Network first, then cache
+self.addEventListener('fetch', function(event) {
   event.respondWith(
-    caches.match(event.request)
-      .then((response) => response || fetch(event.request))
+    fetch(event.request).catch(function() {
+      return caches.match(event.request);
+    })
   );
 });
 
-// Background Sync for location updates
-self.addEventListener('sync', (event) => {
-  if (event.tag === 'location-sync') {
+// Background Sync for location
+self.addEventListener('sync', function(event) {
+  if (event.tag === 'sync-location') {
     event.waitUntil(syncLocation());
   }
 });
 
-// Periodic Background Sync (for supported browsers)
-self.addEventListener('periodicsync', (event) => {
-  if (event.tag === 'location-update') {
-    event.waitUntil(syncLocation());
-  }
-});
-
-async function syncLocation() {
-  // This will be called when sync is triggered
-  const clients = await self.clients.matchAll();
-  clients.forEach(client => {
-    client.postMessage({ type: 'SYNC_LOCATION' });
+function syncLocation() {
+  return self.clients.matchAll().then(function(clients) {
+    clients.forEach(function(client) {
+      client.postMessage({ type: 'SYNC_LOCATION' });
+    });
   });
 }
 
-// Listen for messages from main app
-self.addEventListener('message', (event) => {
-  if (event.data.type === 'LOCATION_UPDATE') {
-    // Store location for background sync
-    saveLocationToIndexedDB(event.data.location);
-  }
+// Push notification for location updates
+self.addEventListener('push', function(event) {
+  var options = {
+    body: 'GeoGuard is tracking your location',
+    icon: './frontend/assets/icon-192.png',
+    badge: './frontend/assets/icon-192.png',
+    silent: true
+  };
+  event.waitUntil(
+    self.registration.showNotification('GeoGuard', options)
+  );
 });
-
-// IndexedDB for offline location storage
-function saveLocationToIndexedDB(location) {
-  const request = indexedDB.open('GeoGuardDB', 1);
-  
-  request.onupgradeneeded = (event) => {
-    const db = event.target.result;
-    if (!db.objectStoreNames.contains('pendingLocations')) {
-      db.createObjectStore('pendingLocations', { keyPath: 'id', autoIncrement: true });
-    }
-  };
-  
-  request.onsuccess = (event) => {
-    const db = event.target.result;
-    const tx = db.transaction('pendingLocations', 'readwrite');
-    const store = tx.objectStore('pendingLocations');
-    store.add(location);
-  };
-}
