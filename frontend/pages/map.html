@@ -46,6 +46,24 @@
 <button class="recenter-btn" onclick="recenterMap()" title="My Location">📍</button>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script>
+  // Request permissions on page load
+  window.addEventListener('load', function() {
+    // Request location permission
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        function() { console.log('Location granted'); },
+        function() { console.log('Location denied'); },
+        { enableHighAccuracy: true }
+      );
+    }
+    
+    // Request notification permission
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  });
+</script>
 <script type="module" src="../js/map.js"></script>
 </body>
 </html>

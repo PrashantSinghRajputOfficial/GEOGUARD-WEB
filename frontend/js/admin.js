@@ -127,24 +127,24 @@ window.focusUser = function(lat, lon) {
 };
 
 
-// Navigate to user - Open navigation modal
+// Navigate to user - Open in external map app
 window.navigateToUser = function(lat, lon, name) {
   var modalHTML = '<div class="nav-modal" id="navModal" onclick="closeNavModal(event)">' +
     '<div class="nav-modal-content" onclick="event.stopPropagation()">' +
     '<h3>Navigate to ' + name + '</h3>' +
     '<p class="subtitle">Choose your preferred navigation app</p>' +
     '<div class="nav-options">' +
-    '<a href="https://www.google.com/maps/dir/?api=1&destination=' + lat + ',' + lon + '&travelmode=driving" target="_blank" class="nav-option" onclick="closeNavModal()">' +
+    '<a href="geo:' + lat + ',' + lon + '?q=' + lat + ',' + lon + '(' + encodeURIComponent(name) + ')" class="nav-option">' +
     '<div class="nav-option-icon google">🗺️</div>' +
-    '<div class="nav-option-text"><div class="title">Google Maps</div><div class="desc">Open in Google Maps</div></div>' +
+    '<div class="nav-option-text"><div class="title">Google Maps</div><div class="desc">Open in Maps App</div></div>' +
     '</a>' +
-    '<a href="https://maps.apple.com/?daddr=' + lat + ',' + lon + '&dirflg=d" target="_blank" class="nav-option" onclick="closeNavModal()">' +
+    '<a href="https://maps.apple.com/?daddr=' + lat + ',' + lon + '&dirflg=d" class="nav-option">' +
     '<div class="nav-option-icon apple">🍎</div>' +
     '<div class="nav-option-text"><div class="title">Apple Maps</div><div class="desc">Open in Apple Maps</div></div>' +
     '</a>' +
-    '<a href="https://waze.com/ul?ll=' + lat + ',' + lon + '&navigate=yes" target="_blank" class="nav-option" onclick="closeNavModal()">' +
+    '<a href="waze://?ll=' + lat + ',' + lon + '&navigate=yes" class="nav-option">' +
     '<div class="nav-option-icon waze">🚙</div>' +
-    '<div class="nav-option-text"><div class="title">Waze</div><div class="desc">Open in Waze</div></div>' +
+    '<div class="nav-option-text"><div class="title">Waze</div><div class="desc">Open in Waze App</div></div>' +
     '</a>' +
     '</div>' +
     '<button class="btn close-btn" onclick="closeNavModal()">Cancel</button>' +

@@ -90,21 +90,46 @@ window.login = async function() {
     var userCredential = await signInWithEmailAndPassword(auth, email, password);
     var userEmail = userCredential.user.email.toLowerCase().trim();
     
-    // Check if admin
-    if (userEmail === ADMIN_EMAIL) {
-      msg.innerText = "✅ Welcome Admin! Redirecting...";
-      setTimeout(function() {
-        window.location.href = "admin.html";
-      }, 1000);
-    } else {
-      msg.innerText = "✅ Login successful! Redirecting...";
-      setTimeout(function() {
-        window.location.href = "map.html";
-      }, 1000);
-    }
+    // Request location permission before redirecting
+    msg.innerText = "Requesting permissions...";
+    
+    requestLocationPermission(function() {
+      // Check if admin
+      if (userEmail === ADMIN_EMAIL) {
+        msg.innerText = "✅ Welcome Admin! Redirecting...";
+        setTimeout(function() {
+          window.location.href = "admin.html";
+        }, 1000);
+      } else {
+        msg.innerText = "✅ Login successful! Redirecting...";
+        setTimeout(function() {
+          window.location.href = "map.html";
+        }, 1000);
+      }
+    });
     
   } catch (err) {
     msg.style.color = "#f87171";
     msg.innerText = err.message;
   }
 };
+
+// Request location permission
+function requestLocationPermission(callback) {
+  if (!navigator.geolocation) {
+    callback();
+    return;
+  }
+  
+  navigator.geolocation.getCurrentPosition(
+    function(position) {
+      console.log("Location permission granted");
+      callback();
+    },
+    function(error) {
+      console.log("Location permission denied or error");
+      callback();
+    },
+    { enableHighAccuracy: true, timeout: 10000 }
+  );
+}
