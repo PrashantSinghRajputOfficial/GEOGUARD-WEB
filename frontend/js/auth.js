@@ -1,12 +1,31 @@
 import { auth, db } from "./firebase.js";
 import { 
   createUserWithEmailAndPassword, 
-  signInWithEmailAndPassword 
+  signInWithEmailAndPassword,
+  onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { doc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 // Admin email
-const ADMIN_EMAIL = "prashantyashika@gmail.com";
+var ADMIN_EMAIL = "prashantyashika@gmail.com";
+
+// Check if user is already logged in (auto-redirect)
+onAuthStateChanged(auth, function(user) {
+  // Only run on login/signup pages
+  var currentPage = window.location.pathname;
+  var isAuthPage = currentPage.includes('login') || currentPage.includes('signup');
+  
+  if (user && isAuthPage) {
+    // User is already logged in, redirect based on role
+    var userEmail = user.email.toLowerCase().trim();
+    
+    if (userEmail === ADMIN_EMAIL) {
+      window.location.href = "admin.html";
+    } else {
+      window.location.href = "map.html";
+    }
+  }
+});
 
 // Signup function
 window.signup = async function() {
@@ -122,11 +141,11 @@ function requestLocationPermission(callback) {
   }
   
   navigator.geolocation.getCurrentPosition(
-    function(position) {
+    function() {
       console.log("Location permission granted");
       callback();
     },
-    function(error) {
+    function() {
       console.log("Location permission denied or error");
       callback();
     },
